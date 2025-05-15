@@ -1,0 +1,61 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'administrator';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function belongsToCompany(companyId) {
+      return isAuthenticated() && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+    }
+    
+    // Default rule - deny all access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Requirement attachments
+    match /requirements/{requirementId}/attachments/{fileName} {
+      allow read: if isAuthenticated() && (
+        firestore.get(/databases/(default)/documents/requirements/$(requirementId)).data.createdBy == request.auth.uid || 
+        isAdmin() || 
+        belongsToCompany(firestore.get(/databases/(default)/documents/requirements/$(requirementId)).data.companyId)
+      );
+      allow write: if isAuthenticated() && (
+        firestore.get(/databases/(default)/documents/requirements/$(requirementId)).data.createdBy == request.auth.uid || 
+        isAdmin()
+      );
+    }
+    
+    // Requirement item attachments
+    match /requirementItems/{itemId}/attachments/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        firestore.get(/databases/(default)/documents/requirementItems/$(itemId)).data.requirementId != null && 
+        firestore.get(/databases/(default)/documents/requirements/$(firestore.get(/databases/(default)/documents/requirementItems/$(itemId)).data.requirementId)).data.createdBy == request.auth.uid || 
+        isAdmin()
+      );
+    }
+    
+    // Company logos
+    match /companies/{companyId}/logo/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || belongsToCompany(companyId);
+    }
+  }
+}

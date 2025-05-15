@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'administrator';
+    }
+    
+    function isBuyer() {
+      return isAuthenticated() && request.auth.token.role == 'buyer';
+    }
+    
+    function isSupplier() {
+      return isAuthenticated() && request.auth.token.role == 'supplier';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function belongsToCompany(companyId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+    }
+    
+    // User collection rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Requirements collection rules
+    match /requirements/{requirementId} {
+      allow read: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid || 
+        isAdmin() || 
+        (resource.data.companyId != null && belongsToCompany(resource.data.companyId))
+      );
+      allow create: if isAuthenticated() && (isBuyer() || isAdmin());
+      allow update: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid || 
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid || 
+        isAdmin()
+      ) && resource.data.status == 'draft';
+    }
+    
+    // Requirement items collection rules
+    match /requirementItems/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated() && (
+        get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.createdBy == request.auth.uid || 
+        isAdmin()
+      );
+    }
+    
+    // Requirement approvals collection rules
+    match /requirementApprovals/{approvalId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if false; // Approvals cannot be modified or deleted
+    }
+    
+    // Companies collection rules
+    match /companies/{companyId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Two-factor codes collection rules
+    match /twoFactorCodes/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only backend can write to this collection
+    }
+  }
+}

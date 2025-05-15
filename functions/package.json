@@ -1,0 +1,31 @@
+{
+  "name": "shortcat-platform-functions",
+  "version": "1.0.0",
+  "description": "Firebase Cloud Functions for ShortCat Platform",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.8.0",
+    "firebase-functions": "^4.3.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/uuid": "^10.0.0",
+    "firebase-functions-test": "^3.1.0",
+    "typescript": "^5.1.6"
+  },
+  "private": true
+}
