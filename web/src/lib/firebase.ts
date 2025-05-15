@@ -7,9 +7,9 @@ import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCbiWOste5KRHu_4G0IeItRyRKKvErjKXw",
+  apiKey: "",
   authDomain: "shortcatdev-1820a.firebaseapp.com",
-  projectId: "shortcatdev-1820a",
+  projectId: "",
   storageBucket: "shortcatdev-1820a.firebasestorage.app",
   messagingSenderId: "1075772694659",
   appId: "1:1075772694659:web:1185e20663811d02c1bbb6",
